@@ -11,7 +11,7 @@ Static site for www.madecommercial.co.uk. No dependencies: `node build.mjs` turn
 1. Set up a real mailbox for `email` in `site.config.json` (the domain has no MX records yet).
 2. Optional: create a Formspree form and put its URL in `formEndpoint`. Until then the contact form opens the visitor's email app.
 3. Fill in `legalName`, `companyNumber` and `registeredOffice` (UK law requires these on a company website).
-4. Check `founderName`, and the About and Privacy copy.
+4. Check the About and Privacy copy.
 
 ## DNS (GoDaddy)
 - Change only the `www` record: CNAME `www` -> `adedot2-pixel.github.io`.
