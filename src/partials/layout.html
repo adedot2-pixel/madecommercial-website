@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <meta name="description" content="{{description}}">
+  <meta name="theme-color" content="#16263F">
+  <link rel="canonical" href="{{url}}">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{site.name}}">
+  <meta property="og:title" content="{{title}}">
+  <meta property="og:description" content="{{description}}">
+  <meta property="og:url" content="{{url}}">
+  <meta property="og:locale" content="en_GB">
+  <meta name="twitter:card" content="summary">
+  <link rel="preload" href="/assets/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/styles.css">
+  {{#if noindex}}<meta name="robots" content="noindex">{{/if}}
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Organization","name":"{{site.name}}","url":"{{site.siteUrl}}","slogan":"{{site.strapline}}","logo":"{{site.siteUrl}}/assets/logo.svg"}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="MADE Commercial, home">
+        <img src="/assets/logo-mark.svg" alt="MADE Commercial" width="140" height="42">
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="sr-only">Menu</span>
+        <span class="nav-toggle-bars" aria-hidden="true"></span>
+      </button>
+      <nav id="site-nav" class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="/services/" {{nav.services}}>Services</a></li>
+          <li><a href="/made-pricing/" {{nav.pricing}}>MADE Pricing</a></li>
+          <li><a href="/about/" {{nav.about}}>About</a></li>
+          <li><a href="/contact/" {{nav.contact}}>Contact</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a class="btn btn-ghost btn-sm" href="{{site.pricingUrl}}">Sign in</a>
+          <a class="btn btn-primary btn-sm" href="{{site.pricingUrl}}">Open MADE Pricing</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+{{content}}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <img src="/assets/logo.svg" alt="MADE Commercial. Commercial clarity. Better decisions." width="220" height="105" loading="lazy">
+      </div>
+      <nav aria-label="Footer">
+        <h2 class="footer-h">Site</h2>
+        <ul>
+          <li><a href="/services/">Services</a></li>
+          <li><a href="/made-pricing/">MADE Pricing</a></li>
+          <li><a href="/about/">About</a></li>
+          <li><a href="/contact/">Contact</a></li>
+        </ul>
+      </nav>
+      <div>
+        <h2 class="footer-h">Get in touch</h2>
+        <ul>
+          <li><a href="mailto:{{site.email}}">{{site.email}}</a></li>
+          {{#if site.phone}}<li><a href="tel:{{site.phone}}">{{site.phone}}</a></li>{{/if}}
+          {{#if site.linkedin}}<li><a href="{{site.linkedin}}" rel="noopener">LinkedIn</a></li>{{/if}}
+          <li><a href="{{site.pricingUrl}}">Sign in to MADE Pricing</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-legal">
+      <p>&copy; {{year}} {{legalOrName}}.{{#if site.companyNumber}} Registered in England and Wales, company number {{site.companyNumber}}.{{/if}}{{#if site.registeredOffice}} Registered office: {{site.registeredOffice}}.{{/if}}</p>
+      <p><a href="/privacy/">Privacy</a></p>
+    </div>
+  </footer>
+
+  <script src="/assets/main.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "site",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "node build.mjs && python3 -m http.server 4173 --directory dist"],
+      "port": 4173
+    }
+  ]
+}
