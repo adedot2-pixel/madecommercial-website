@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Inter"; src: url("../public/assets/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body { position: relative; font-family: Inter, sans-serif; color: #fff;
+    background:
+      radial-gradient(700px 420px at 82% 38%, rgba(78,127,84,.32), transparent 65%),
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 56px 56px,
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 56px 56px,
+      linear-gradient(150deg, #16263F 0%, #1d3355 100%); }
+  .art { position: absolute; right: -40px; bottom: -64px; width: 800px;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 30%); mask-image: linear-gradient(to right, transparent 0, #000 30%); }
+  .logo { position: absolute; left: 84px; top: 150px; width: 470px; }
+  .line { position: absolute; left: 84px; top: 436px; width: 440px; font-size: 25px; line-height: 1.4; color: #c9d4e4; letter-spacing: -.005em; }
+  .url { position: absolute; left: 84px; bottom: 50px; font-size: 18px; letter-spacing: .14em; text-transform: uppercase; color: #9FC7A4; font-weight: 600; }
+  .bar { position: absolute; left: 0; top: 0; width: 10px; height: 100%; background: linear-gradient(#4E7F54, #9FC7A4); }
+</style>
+<div class="bar"></div>
+<img class="art" src="../public/assets/img/hero.svg" alt="">
+<img class="logo" src="../brand/logo-white.svg" alt="">
+<div class="line">Commercial consultancy for complex bids and contracts.</div>
+<div class="url">madecommercial.co.uk</div>
