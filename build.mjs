@@ -47,7 +47,7 @@ for (const file of readdirSync(pagesDir).filter((f) => f.endsWith('.html'))) {
   const path = slug === 'index' ? '/' : slug === '404' ? '/404.html' : `/${slug}/`;
 
   const nav = {};
-  for (const k of ['services', 'pricing', 'about', 'contact']) nav[k] = meta.nav === k ? 'aria-current="page"' : '';
+  for (const k of ['services', 'sectors', 'pricing', 'about', 'contact']) nav[k] = meta.nav === k ? 'aria-current="page"' : '';
 
   const ctx = {
     site,

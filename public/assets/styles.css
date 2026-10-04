@@ -292,3 +292,32 @@ h1 em { font-style: normal; color: var(--green-light); }
 @media (max-width: 900px) { .hero--page .hero-bars { display: none; } }
 
 h1, h2, h3 { text-wrap: balance; }
+
+/* Lifecycle card */
+.lifecycle { background: #fff; color: var(--ink); border-radius: 18px; box-shadow: 0 30px 70px rgba(5,12,25,.45), 0 0 0 1px rgba(255,255,255,.08); padding: 28px 28px 22px; }
+.lifecycle h2 { font-size: 1.05rem; letter-spacing: 0; margin: 0 0 4px; }
+.lifecycle .sub { font-size: .88rem; color: var(--ink-soft); margin: 0 0 18px; }
+.lc-list { list-style: none; margin: 0; padding: 0; position: relative; }
+.lc-list::before { content: ""; position: absolute; left: 15px; top: 16px; bottom: 16px; width: 2px; background: #dbe5dc; }
+.lc-list li { position: relative; display: grid; grid-template-columns: 32px 1fr; gap: 14px; padding: 8px 0; align-items: start; }
+.lc-list .n { width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 700; font-size: .85rem; display: grid; place-items: center; position: relative; z-index: 1; }
+.lc-list strong { display: block; font-size: .98rem; line-height: 1.3; }
+.lc-list span { display: block; font-size: .85rem; color: var(--ink-soft); line-height: 1.4; }
+.tag { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; background: #e6f0e7; color: var(--green-dark); padding: 4px 10px; border-radius: 999px; margin-bottom: 14px; }
+.card.is-core { border-color: var(--green); box-shadow: 0 0 0 1px var(--green), var(--shadow); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.sector-list { list-style: none; padding: 0; margin: 14px 0 0; font-size: .95rem; color: var(--ink-soft); }
+.sector-list li { padding: 5px 0 5px 20px; position: relative; }
+.sector-list li::before { content: ""; position: absolute; left: 0; top: .85em; width: 8px; height: 8px; border-radius: 2px; background: var(--green); }
+.sector-block { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 48px; padding: 52px 0; border-top: 1px solid var(--line); }
+.sector-block:first-of-type { border-top: 0; padding-top: 0; }
+.sector-block h2 { font-size: 1.7rem; }
+@media (max-width: 1000px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) { .grid-4 { grid-template-columns: 1fr; } .sector-block { grid-template-columns: 1fr; gap: 24px; padding: 36px 0; } .strip-inner { grid-template-columns: 1fr 1fr; } }
+
+/* fixes: light cards inside navy sections, sector grid, hero headline size */
+.band-navy .mock .mock-title, .band-navy .mock .mock-body { color: var(--ink); }
+.band-navy .mock .mock-sub, .band-navy .mock .mock-note { color: var(--ink-soft); }
+.grid-4 { grid-template-columns: repeat(2, 1fr); }
+.hero-split h1 { font-size: clamp(2.3rem, 4.6vw, 3.4rem); }
+@media (max-width: 900px) { .grid-4 { grid-template-columns: 1fr; } }
