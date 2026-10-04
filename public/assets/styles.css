@@ -201,7 +201,7 @@ h3 { font-size: 1.25rem; letter-spacing: -0.015em; }
 .statement em { font-style: normal; color: var(--green); }
 
 /* ---------- Footer ---------- */
-.site-footer { background: #fff; border-top: 1px solid var(--line); }
+.site-footer { background: var(--bg-soft); border-top: 1px solid var(--line); }
 .footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 40px; padding-top: 64px; padding-bottom: 44px; }
 .footer-brand img { width: 200px; height: auto; }
 .footer-h { font-size: .74rem; letter-spacing: .16em; text-transform: uppercase; color: var(--soft); font-weight: 600; margin: 0 0 16px; }
