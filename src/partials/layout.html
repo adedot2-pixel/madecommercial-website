@@ -18,6 +18,7 @@
   <link rel="preload" href="/assets/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/styles.css">
   {{#if noindex}}<meta name="robots" content="noindex">{{/if}}
+  <script>document.documentElement.classList.add('js')</script>
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"Organization","name":"{{site.name}}","url":"{{site.siteUrl}}","slogan":"{{site.strapline}}","logo":"{{site.siteUrl}}/assets/logo.svg"}
   </script>
@@ -43,7 +44,7 @@
           <li><a href="/contact/" {{nav.contact}}>Contact</a></li>
         </ul>
         <div class="nav-actions">
-          <a class="btn btn-ghost btn-sm" href="{{site.pricingUrl}}">Sign in</a>
+          <a class="nav-link" href="{{site.pricingUrl}}">Sign in</a>
           <a class="btn btn-primary btn-sm" href="{{site.pricingUrl}}">Open MADE Pricing</a>
         </div>
       </nav>
@@ -57,7 +58,7 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div class="footer-brand">
-        <img src="/assets/logo.svg" alt="MADE Commercial. Commercial clarity. Better decisions." width="220" height="105" loading="lazy">
+        <img src="/assets/logo.svg" alt="MADE Commercial. Commercial clarity. Better decisions." width="200" height="95" loading="lazy">
       </div>
       <nav aria-label="Footer">
         <h2 class="footer-h">Site</h2>
@@ -70,7 +71,7 @@
         </ul>
       </nav>
       <div>
-        <h2 class="footer-h">Get in touch</h2>
+        <h2 class="footer-h">Contact</h2>
         <ul>
           <li><a href="mailto:{{site.email}}">{{site.email}}</a></li>
           {{#if site.phone}}<li><a href="tel:{{site.phone}}">{{site.phone}}</a></li>{{/if}}

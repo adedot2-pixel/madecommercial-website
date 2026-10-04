@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "dev": "node build.mjs && python3 -m http.server 4173 --directory dist"
+    "dev": "node build.mjs && python3 -m http.server 4173 --directory dist",
+    "offline": "node build.mjs --offline"
   }
 }

@@ -1,67 +1,47 @@
 ---
 title: Contact | MADE Commercial
-description: Get in touch with MADE Commercial about bid pricing, contract reviews, pricing models or MADE Pricing.
+description: Get in touch with MADE Commercial about bid pricing, contract management, commercial finance or MADE Pricing.
 nav: contact
 ---
     <section class="hero hero--page">
-      <div class="hero-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
       <div class="container">
-        <div class="hero-copy">
-          <p class="eyebrow">Contact</p>
-          <h1>Tell us what you are working on.</h1>
-          <p class="lede">A bid to price, a contract to review, or a question about MADE Pricing. Send us a few lines and we will come back to you.</p>
-        </div>
+        <p class="eyebrow">Contact</p>
+        <h1>Tell us what you are working on.</h1>
       </div>
     </section>
 
     <section class="section">
       <div class="container contact-grid">
-        <div>
-          <form id="contact-form" class="form" action="#" method="post" data-endpoint="{{site.formEndpoint}}" data-email="{{site.email}}" novalidate>
-            <div class="grid grid-2">
-              <div class="field">
-                <label for="name">Your name</label>
-                <input id="name" name="name" type="text" autocomplete="name" required>
-              </div>
-              <div class="field">
-                <label for="company">Company</label>
-                <input id="company" name="company" type="text" autocomplete="organization">
-              </div>
-            </div>
-            <div class="field">
-              <label for="email">Email</label>
-              <input id="email" name="email" type="email" autocomplete="email" required>
-            </div>
-            <div class="field">
-              <label for="topic">What is it about?</label>
-              <select id="topic" name="topic">
-                <option>Bid and tender pricing</option>
-                <option>Contract and commercial management</option>
-                <option>Commercial finance and modelling</option>
-                <option>Risk and contract advisory</option>
-                <option>Commercial review</option>
-                <option>Interim support or training</option>
-                <option>MADE Pricing</option>
-                <option>Something else</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="message">Message</label>
-              <textarea id="message" name="message" required></textarea>
-            </div>
-            <div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
-            <div><button class="btn btn-primary" type="submit">Send message</button></div>
-            <div id="form-status" class="form-status" role="status" aria-live="polite"></div>
-            <p class="small">We use your details only to reply to your enquiry. See our <a href="/privacy/">privacy notice</a>.</p>
-          </form>
-        </div>
-        <aside>
-          <div class="note">
-            <p><strong>Email</strong><br><a href="mailto:{{site.email}}">{{site.email}}</a></p>
-            {{#if site.phone}}<p><strong>Phone</strong><br><a href="tel:{{site.phone}}">{{site.phone}}</a></p>{{/if}}
-            {{#if site.linkedin}}<p><strong>LinkedIn</strong><br><a href="{{site.linkedin}}" rel="noopener">MADE Commercial</a></p>{{/if}}
-            <p><strong>Already a MADE Pricing user?</strong><br><a href="{{site.pricingUrl}}">Sign in here</a></p>
+        <form id="contact-form" class="form" action="#" method="post" data-endpoint="{{site.formEndpoint}}" data-email="{{site.email}}" novalidate>
+          <div class="two">
+            <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" autocomplete="name" required></div>
+            <div class="field"><label for="company">Company</label><input id="company" name="company" type="text" autocomplete="organization"></div>
           </div>
+          <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+          <div class="field">
+            <label for="topic">Topic</label>
+            <select id="topic" name="topic">
+              <option>Bid and tender pricing</option>
+              <option>Contract management</option>
+              <option>Commercial finance</option>
+              <option>Risk and contract advisory</option>
+              <option>Commercial review</option>
+              <option>Interim support or training</option>
+              <option>MADE Pricing</option>
+              <option>Something else</option>
+            </select>
+          </div>
+          <div class="field"><label for="message">Message</label><textarea id="message" name="message" required></textarea></div>
+          <div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+          <div><button class="btn btn-primary" type="submit">Send message</button></div>
+          <div id="form-status" class="form-status" role="status" aria-live="polite"></div>
+          <p class="small">We use your details only to reply. See our <a href="/privacy/">privacy notice</a>.</p>
+        </form>
+        <aside class="aside">
+          <p><strong>Email</strong><a href="mailto:{{site.email}}">{{site.email}}</a></p>
+          {{#if site.phone}}<p><strong>Phone</strong><a href="tel:{{site.phone}}">{{site.phone}}</a></p>{{/if}}
+          {{#if site.linkedin}}<p><strong>LinkedIn</strong><a href="{{site.linkedin}}" rel="noopener">MADE Commercial</a></p>{{/if}}
+          <p><strong>MADE Pricing</strong><a href="{{site.pricingUrl}}">Sign in</a></p>
         </aside>
       </div>
     </section>

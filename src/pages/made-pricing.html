@@ -3,16 +3,27 @@ title: MADE Pricing | Hard services pricing and resource-build tool for FM
 description: MADE Pricing turns a site list, an asset register and a scope into an annual price, a resource build and a maintenance schedule for planned and reactive maintenance bids.
 nav: pricing
 ---
-    <section class="hero hero--page">
-      <div class="hero-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-      <div class="container">
+    <section class="hero">
+      <div class="container hero-grid" style="min-height:0;padding-top:88px;padding-bottom:140px">
         <div class="hero-copy">
           <p class="eyebrow">MADE Pricing</p>
-          <h1>Hard services bids, built from first principles.</h1>
-          <p class="lede">An estimating tool for planned and reactive maintenance. Turn a site list, an asset register and a scope into an annual price, a resource build and a maintenance schedule you can stand behind.</p>
+          <h1 style="max-width:12ch;font-size:clamp(2.4rem,5vw,3.8rem)">Hard services bids, built from first principles.</h1>
+          <p class="lede">Planned and reactive maintenance, priced from the asset up.</p>
           <div class="btn-row">
             <a class="btn btn-green" href="{{site.pricingUrl}}">Open MADE Pricing</a>
-            <a class="btn btn-outline-light" href="{{site.pricingUrl}}">Sign in</a>
+            <a class="btn btn-ghost" href="{{site.pricingUrl}}">Sign in</a>
+          </div>
+        </div>
+        <div class="mock" role="img" aria-label="Illustrative example from MADE Pricing: annual price at four service levels" style="max-width:520px;justify-self:end;width:100%">
+          <div class="mock-bar"><i></i><i></i><i></i><span>MADE Pricing</span></div>
+          <div class="mock-body">
+            <p class="mock-title">Annual price by service level</p>
+            <p class="mock-sub">Same scope, priced four ways</p>
+            <div class="mock-row"><div class="lvl">Statutory<small>8.2 FTE</small></div><div class="track"><b style="width:56%"></b></div><div class="val">£486k</div></div>
+            <div class="mock-row"><div class="lvl">Standard<small>10.6 FTE</small></div><div class="track"><b style="width:69%"></b></div><div class="val">£602k</div></div>
+            <div class="mock-row is-sel"><div class="lvl">Enhanced<small>12.9 FTE</small></div><div class="track"><b style="width:84%"></b></div><div class="val">£731k</div></div>
+            <div class="mock-row"><div class="lvl">Gold<small>15.4 FTE</small></div><div class="track"><b style="width:100%"></b></div><div class="val">£868k</div></div>
+            <p class="mock-note">Illustrative figures only.</p>
           </div>
         </div>
       </div>
@@ -20,89 +31,34 @@ nav: pricing
 
     <section class="section">
       <div class="container">
-        <div class="section-head">
-          <p class="eyebrow">What it does</p>
-          <h2>A defensible price, with every figure traceable to its inputs.</h2>
-        </div>
-        <div class="grid grid-3">
-          <article class="card">
-            <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/></svg></div>
-            <h3>Built from the asset up</h3>
-            <p>Price planned maintenance from the asset register: task by task, visit by visit, with every figure traceable to its inputs.</p>
-          </article>
-          <article class="card">
-            <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div>
-            <h3>Statutory to gold</h3>
-            <p>See the price and the people needed at four service levels, from the statutory minimum to a gold standard, side by side.</p>
-          </article>
-          <article class="card">
-            <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14a6.5 6.5 0 0 1 3.5 6"/></svg></div>
-            <h3>A real resource build</h3>
-            <p>Hours and FTE by trade, resident or mobile, supervision, and every cost in the labour rate laid out and editable.</p>
-          </article>
-          <article class="card">
-            <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 7.7-8 9-4.6-1.3-8-4.5-8-9V6l8-3zM9 12l2.2 2.2L15 10"/></svg></div>
-            <h3>ELI and TUPE aware</h3>
-            <p>Bring in anonymised ELI data to price transferring staff at actual cost, and see redundancy and recruitment at a glance.</p>
-          </article>
-          <article class="card">
-            <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h13l3 3v7H3zM7 17a2 2 0 1 0 0 .01M15 17a2 2 0 1 0 0 .01"/></svg></div>
-            <h3>Self-delivered, subcontracted or mixed</h3>
-            <p>Choose delivery by service and by site, enter real subcontractor quotes, and compare them with the tool's estimate.</p>
-          </article>
-          <article class="card">
-            <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg></div>
-            <h3>Contract term and audit trail</h3>
-            <p>Index the price through the contract, add mobilisation costs, and keep a reasoned log of every override and saved version.</p>
-          </article>
+        <div class="icons reveal">
+          <div class="icon-item"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/></svg></div><h3>Built from the asset up</h3><p>Task by task, visit by visit.</p></div>
+          <div class="icon-item"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div><h3>Statutory to gold</h3><p>Four service levels, side by side.</p></div>
+          <div class="icon-item"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14a6.5 6.5 0 0 1 3.5 6"/></svg></div><h3>A real resource build</h3><p>Hours and FTE by trade.</p></div>
+          <div class="icon-item"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 7.7-8 9-4.6-1.3-8-4.5-8-9V6l8-3zM9 12l2.2 2.2L15 10"/></svg></div><h3>ELI and TUPE aware</h3><p>Transferring staff at actual cost.</p></div>
+          <div class="icon-item"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h13l3 3v7H3zM7 17a2 2 0 1 0 0 .01M15 17a2 2 0 1 0 0 .01"/></svg></div><h3>Delivery your way</h3><p>Self-delivered, subcontracted or mixed.</p></div>
+          <div class="icon-item"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg></div><h3>Full audit trail</h3><p>Every override and version, logged.</p></div>
         </div>
       </div>
     </section>
 
     <section class="section section-soft">
       <div class="container">
-        <div class="section-head">
-          <p class="eyebrow">How it works</p>
-          <h2>From spreadsheet to bid pack in three steps.</h2>
-        </div>
-        <div class="steps">
-          <div class="step"><h3>Import</h3><p>Fill in the Excel template with sites, assets and scope, then upload it. Every row is checked and reported.</p></div>
-          <div class="step"><h3>Shape</h3><p>Set service levels and delivery, add quotes and ELI staff, and replace placeholder rates with your own.</p></div>
-          <div class="step"><h3>Price</h3><p>Review the build-up, compare versions, and export a full bid pack to Excel.</p></div>
+        <div class="section-head reveal"><p class="eyebrow">How it works</p><h2>Import. Shape. Price.</h2></div>
+        <div class="steps reveal">
+          <div class="step"><span class="num">01</span><h3>Import</h3><p>Upload sites, assets and scope from Excel.</p></div>
+          <div class="step"><span class="num">02</span><h3>Shape</h3><p>Set service levels, quotes and your own rates.</p></div>
+          <div class="step"><span class="num">03</span><h3>Price</h3><p>Compare versions. Export the bid pack.</p></div>
         </div>
       </div>
     </section>
 
-    <section class="section band-navy">
-      <div class="container split">
-        <div>
-          <p class="eyebrow">Your data stays yours</p>
-          <h2>Your rates, your task library, your bids.</h2>
-          <p>Each company has its own users, bids, rates and task library. Nothing is shared between companies. Start from our draft task library and make it your own.</p>
-          <ul class="checklist">
-            <li>Placeholder rates to get started, replaced with your own pay rates and on-costs</li>
-            <li>Regional rate tables, including London wage floors</li>
-            <li>Versions you can save, compare and reason about</li>
-          </ul>
-        </div>
-        <div class="panel">
-          <h3>New to MADE Pricing?</h3>
-          <p>We will help you get your company set up, load your rates and run your first bid through the tool.</p>
-          <div class="btn-row">
-            <a class="btn btn-green" href="/contact/?topic=MADE%20Pricing">Ask for a walkthrough</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-soft" style="padding:56px 0">
-      <div class="container cta-row">
-        <div>
-          <h2 style="font-size:1.6rem;margin:0 0 4px">Already a user?</h2>
-          <p style="margin:0;color:var(--ink-soft)">Head straight to your bids.</p>
-        </div>
-        <div class="btn-row" style="margin:0">
-          <a class="btn btn-primary" href="{{site.pricingUrl}}">Open MADE Pricing</a>
+    <section class="section cta band-navy">
+      <div class="container reveal">
+        <h2>See it on your own bid.</h2>
+        <p>Each company's data is kept separate.</p>
+        <div class="btn-row">
+          <a class="btn btn-green" href="/contact/?topic=MADE%20Pricing">Ask for a walkthrough</a>
           <a class="btn btn-ghost" href="{{site.pricingUrl}}">Sign in</a>
         </div>
       </div>
