@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline follow-ups</title>
+<style>
+  :root { --fg:#111; --muted:#666; --line:#ddd; --bg:#fff; --head:#f2f2f2; --red:#b00020; --amber:#a15c00; --sel:#fffbe6; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; font:14px/1.4 Arial, Helvetica, sans-serif; color:var(--fg); background:var(--bg); }
+  h1 { font-size:18px; margin:0 0 2px; }
+  .muted { color:var(--muted); font-size:12px; }
+  .counts { display:flex; gap:20px; margin:12px 0; flex-wrap:wrap; }
+  .counts div b { display:block; font-size:20px; }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0; }
+  input, select, button, textarea { font:inherit; }
+  input[type=search] { padding:5px 8px; width:240px; max-width:100%; }
+  select, button { padding:4px 8px; }
+  button { cursor:pointer; background:#f7f7f7; border:1px solid #bbb; border-radius:3px; }
+  button:hover { background:#eee; }
+  .wrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; min-width:900px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--head); border-bottom:2px solid #333; font-size:12px; cursor:pointer; white-space:nowrap; user-select:none; }
+  th.sorted-asc::after { content:" \25B2"; } th.sorted-desc::after { content:" \25BC"; }
+  td.num { text-align:right; }
+  tr.main:hover { background:#fafafa; }
+  tr.detail td { background:#fafafa; font-size:13px; }
+  .overdue { color:var(--red); font-weight:bold; }
+  .cold { color:var(--amber); font-size:11px; }
+  .tag { font-size:11px; padding:1px 5px; border:1px solid #bbb; border-radius:3px; white-space:nowrap; }
+  .gap { color:var(--muted); font-size:11px; }
+  .actions { min-width:230px; }
+  .actions button, .actions select { font-size:12px; padding:2px 6px; margin:0 2px 2px 0; }
+  .status-snoozed td, .status-done td, .status-excluded td { color:#999; }
+  dialog { width:min(720px, 95vw); border:1px solid #999; padding:16px; }
+  dialog textarea { width:100%; min-height:220px; }
+  .warn { color:var(--amber); font-size:12px; }
+</style>
+</head>
+<body>
+<h1>Pipeline follow-ups</h1>
+<div class="muted">As of {{ meta.as_of }} &middot; source {{ meta.source }} (sheet "{{ meta.sheet }}") &middot; read-only &middot; snooze/done/notes are saved by this tool only, never in the spreadsheet &middot; drafts are never sent</div>
+{% for w in meta.warnings %}<div class="warn">&#9888; {{ w }}</div>{% endfor %}
+<div class="counts">
+  <div><b class="overdue">{{ meta.counts.overdue }}</b><span class="muted">Overdue</span></div>
+  <div><b>{{ meta.counts.this_week }}</b><span class="muted">Due {{ meta.week }}</span></div>
+  <div><b style="color:var(--amber)">{{ meta.counts.cold }}</b><span class="muted">Going cold</span></div>
+  <div><b>{{ meta.counts.gaps }}</b><span class="muted">Data gaps</span></div>
+  <div><b>{{ meta.counts.snoozed }}</b><span class="muted">Snoozed</span></div>
+</div>
+<div class="bar">
+  <input type="search" id="q" placeholder="Search contact, firm, notes..." aria-label="Search">
+  <select id="fBucket" aria-label="Due"><option value="">All due states</option><option value="due">Overdue + this week</option><option value="overdue">Overdue</option><option value="this_week">This week</option><option value="upcoming">Upcoming</option><option value="later">Later</option><option value="none">No due date</option><option value="cold">Going cold</option><option value="gap">Has data gaps</option></select>
+  <select id="fStage" aria-label="Stage"><option value="">All stages</option>{% for s in meta.stages %}<option>{{ s }}</option>{% endfor %}<option value="__none">(no stage)</option></select>
+  <select id="fOwner" aria-label="Owner"><option value="">All owners</option>{% for o in meta.owners %}<option>{{ o }}</option>{% endfor %}</select>
+  <label class="muted"><input type="checkbox" id="fHidden"> show snoozed / done / invested &amp; dormant</label>
+  <span style="flex:1"></span>
+  <a href="/export.xlsx"><button type="button">Export to Excel</button></a>
+  <span class="muted" id="shown"></span>
+</div>
+<div class="wrap">
+<table id="t">
+<thead><tr>
+  <th data-k="priority" data-t="num">Priority</th>
+  <th data-k="contact">Contact</th>
+  <th data-k="firm">Firm</th>
+  <th data-k="stage">Stage</th>
+  <th data-k="last_contact">Last contact</th>
+  <th data-k="days_since" data-t="num">Days since</th>
+  <th data-k="next_action">Next action</th>
+  <th data-k="due">Due date</th>
+  <th data-k="bucket_label">Status</th>
+  <th>Actions</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<dialog id="dlg">
+  <h3 id="dlgTitle" style="margin-top:0"></h3>
+  <div id="dlgBody"></div>
+  <div style="margin-top:12px;text-align:right"><button type="button" onclick="dlg.close()">Close</button></div>
+</dialog>
+
+<script id="data" type="application/json">{{ rows|tojson }}</script>
+<script>
+const ROWS = JSON.parse(document.getElementById('data').textContent);
+let sortKey = 'priority', sortDir = -1;
+const open = new Set();
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = d => { if (!d) return ''; const x = new Date(d + 'T00:00:00'); return x.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); };
+
+function visible(r) {
+  const q = $('#q').value.trim().toLowerCase();
+  if (q && ![r.contact, r.firm, r.notes, r.next_action, r.email, r.owner, r.stage_raw].join(' ').toLowerCase().includes(q)) return false;
+  const b = $('#fBucket').value;
+  if (b === 'due' && !['overdue', 'this_week'].includes(r.bucket)) return false;
+  if (b === 'cold' && !r.cold) return false;
+  if (b === 'gap' && !r.gap) return false;
+  if (b && !['due', 'cold', 'gap'].includes(b) && r.bucket !== b) return false;
+  const s = $('#fStage').value;
+  if (s === '__none' ? r.stage : (s && r.stage !== s)) return false;
+  const o = $('#fOwner').value;
+  if (o && r.owner !== o) return false;
+  if (!$('#fHidden').checked && (r.status !== 'open' || r.bucket === 'excluded')) return false;
+  return true;
+}
+
+function cmp(a, b) {
+  const k = sortKey; let x = a[k], y = b[k];
+  const blank = v => v === null || v === undefined || v === '';
+  if (blank(x) && blank(y)) return 0; if (blank(x)) return 1; if (blank(y)) return -1;
+  if (typeof x === 'number') return (x - y) * sortDir;
+  return String(x).localeCompare(String(y)) * sortDir;
+}
+
+function render() {
+  const rows = ROWS.filter(visible).sort(cmp);
+  $('#shown').textContent = rows.length + ' of ' + ROWS.length + ' contacts';
+  const out = [];
+  for (const r of rows) {
+    const status = r.status === 'snoozed' ? 'Snoozed to ' + fmt(r.snooze_until) : r.status === 'done' ? 'Done (until sheet changes)' : r.bucket_label;
+    out.push(`<tr class="main status-${r.bucket === 'excluded' ? 'excluded' : r.status}" data-id="${r.id}">
+      <td class="num"><b>${r.priority ?? ''}</b></td>
+      <td><a href="#" onclick="toggle('${r.id}');return false">${esc(r.contact)}</a>${r.cold ? ' <span class="cold">cold</span>' : ''}${r.gap ? ' <span class="gap" title="' + esc(r.issues.join('; ')) + '">&#9888; data</span>' : ''}${r.tool_notes.length ? ' <span class="gap">&#128221;' + r.tool_notes.length + '</span>' : ''}</td>
+      <td>${esc(r.firm)}</td>
+      <td>${esc(r.stage) || '<span class="gap">(none)</span>'}</td>
+      <td>${fmt(r.last_contact)}${r.last_type ? ' <span class="muted">' + esc(r.last_type) + '</span>' : ''}</td>
+      <td class="num">${r.days_since ?? ''}</td>
+      <td>${esc(r.next_action)}</td>
+      <td class="${r.bucket === 'overdue' ? 'overdue' : ''}">${fmt(r.due)}${r.days_overdue ? '<br><span style="font-size:11px">' + r.days_overdue + 'd overdue</span>' : ''}</td>
+      <td><span class="tag">${esc(status)}</span></td>
+      <td class="actions">${actionButtons(r)}</td>
+    </tr>`);
+    if (open.has(r.id)) out.push(detailRow(r));
+  }
+  $('#t tbody').innerHTML = out.join('') || '<tr><td colspan="10" class="muted">No contacts match the filters.</td></tr>';
+  document.querySelectorAll('th[data-k]').forEach(th => th.className = th.dataset.k === sortKey ? (sortDir > 0 ? 'sorted-asc' : 'sorted-desc') : '');
+}
+
+function actionButtons(r) {
+  if (r.bucket === 'excluded') return `<button onclick="note('${r.id}')">Note</button>`;
+  let h = '';
+  if (r.status !== 'open') h += `<button onclick="act('${r.id}','unsnooze')">Reopen</button>`;
+  else {
+    h += `<select onchange="snooze('${r.id}', this)" aria-label="Snooze"><option value="">Snooze...</option><option value="2">2 days</option><option value="7">1 week</option><option value="14">2 weeks</option><option value="30">1 month</option><option value="date">Pick date...</option></select> `;
+    h += `<button onclick="done('${r.id}')">Done</button>`;
+  }
+  h += `<button onclick="note('${r.id}')">Note</button>`;
+  if (r.draft) h += `<button onclick="draft('${r.id}')">Draft</button>`;
+  return h;
+}
+
+function detailRow(r) {
+  const b = r.breakdown || {};
+  const notes = r.tool_notes.map(n => `<div>&#128221; <b>${esc(n.by)}</b> ${esc(n.at)}: ${esc(n.note)} <a href="#" onclick="undo(${n.id});return false" class="muted">remove</a></div>`).join('');
+  return `<tr class="detail"><td></td><td colspan="9">
+    <div><b>Why:</b> ${esc(r.reason) || '<span class="muted">no due date can be worked out - check the data</span>'}</div>
+    ${r.priority != null ? `<div class="muted">Priority = urgency ${b.urgency} + stage ${b.stage} + ticket ${b.ticket}${b.ticket_estimated ? ' (ticket unknown - median used)' : ''}</div>` : ''}
+    <div><b>Email:</b> ${esc(r.email) || '<span class="muted">none</span>'} &middot; <b>Owner:</b> ${esc(r.owner)} &middot; <b>Ticket:</b> ${esc(r.ticket) || '-'} &middot; <b>Last move by:</b> ${esc(r.last_actor)} &middot; <b>Stage as typed:</b> ${esc(r.stage_raw) || '-'} &middot; <b>Excel row:</b> ${r.rows.join(', ')}</div>
+    ${r.notes ? `<div><b>Sheet notes:</b> ${esc(r.notes)}</div>` : ''}
+    ${r.issues.length ? `<div class="warn"><b>Data:</b> ${r.issues.map(esc).join('; ')}</div>` : ''}
+    ${notes}
+  </td></tr>`;
+}
+
+function toggle(id) { open.has(id) ? open.delete(id) : open.add(id); render(); }
+
+async function post(url, body) {
+  const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})});
+  if (!res.ok) { alert('Could not save: ' + (await res.text())); return false; }
+  return true;
+}
+async function act(id, kind, extra) { if (await post('/api/actions', Object.assign({contact_id:id, kind}, extra || {}))) location.reload(); }
+function snooze(id, sel) {
+  const v = sel.value; sel.value = '';
+  if (!v) return;
+  if (v === 'date') {
+    const d = prompt('Snooze until (YYYY-MM-DD):');
+    if (d) act(id, 'snooze', {until: d});
+  } else act(id, 'snooze', {days: parseInt(v, 10)});
+}
+function done(id) { const r = ROWS.find(x => x.id === id); act(id, 'done', {basis: r.basis}); }
+function note(id) { const n = prompt('Add a note (saved in the tool, not the spreadsheet):'); if (n && n.trim()) act(id, 'note', {note: n}); }
+async function undo(aid) { if (await post('/api/actions/' + aid + '/undo')) location.reload(); }
+
+function draft(id) {
+  const r = ROWS.find(x => x.id === id), d = r.draft;
+  const full = `To: ${d.to || ''}\nSubject: ${d.subject}\n\n${d.body}`;
+  window._full = full;
+  $('#dlgTitle').textContent = 'Draft for ' + r.contact + ' (' + r.firm + ')';
+  $('#dlgBody').innerHTML = `<p class="muted" style="white-space:pre-wrap">${esc(d.review)}</p>
+    ${d.to ? '' : '<p class="warn">No valid email address in the sheet for this contact.</p>'}
+    <p><b>Subject:</b> <span id="dSubj">${esc(d.subject)}</span> <button type="button" onclick="copy(dSubj.textContent)">Copy subject</button></p>
+    <textarea id="dBody">${esc(d.body)}</textarea>
+    <p><button type="button" onclick="copy(dBody.value)">Copy body</button> <button type="button" onclick="copy(window._full)">Copy all</button>
+    <span class="muted">Nothing is sent. Paste into Outlook, review, then send yourself.</span></p>`;
+  dlg.showModal();
+}
+async function copy(text) { try { await navigator.clipboard.writeText(text); } catch (e) { prompt('Copy:', text); } }
+
+document.querySelectorAll('th[data-k]').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.k;
+  if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = th.dataset.t === 'num' ? -1 : 1; }
+  render();
+}));
+['#q', '#fBucket', '#fStage', '#fOwner', '#fHidden'].forEach(s => $(s).addEventListener('input', render));
+const dlg = document.getElementById('dlg');
+render();
+</script>
+</body>
+</html>

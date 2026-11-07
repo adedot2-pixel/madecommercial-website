@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pipeline-followup"
+version = "0.1.0"
+description = "Reads the investor pipeline spreadsheet, says who to follow up with and when, drafts (never sends) emails."
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "openpyxl>=3.1",
+    "PyYAML>=6.0",
+    "Jinja2>=3.1",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+anthropic = ["anthropic"]   # only if drafts.ai.provider = anthropic
+dev = ["pytest"]
+
+[project.scripts]
+pipeline-followup = "pipeline_followup.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pipeline_followup = ["default_config.yaml", "templates/*.j2", "templates/drafts/*.j2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

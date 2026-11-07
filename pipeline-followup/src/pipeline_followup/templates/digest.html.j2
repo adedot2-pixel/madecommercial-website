@@ -1,0 +1,92 @@
+{%- set th = 'text-align:left;padding:6px 8px;border-bottom:2px solid #333;font-size:12px;color:#333;background:#f2f2f2;' -%}
+{%- set td = 'padding:6px 8px;border-bottom:1px solid #ddd;font-size:13px;vertical-align:top;' -%}
+{%- set h2 = 'font-size:16px;margin:28px 0 8px 0;padding-bottom:4px;border-bottom:1px solid #999;' -%}
+{%- macro fu_table(items, show_reason=True) -%}
+<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;">
+<tr><th style="{{ th }}">Pri</th><th style="{{ th }}">Contact</th><th style="{{ th }}">Firm</th><th style="{{ th }}">Stage</th><th style="{{ th }}">Due</th><th style="{{ th }}">Last contact</th>{% if show_reason %}<th style="{{ th }}">Why</th>{% endif %}<th style="{{ th }}">Owner</th></tr>
+{% for f in items %}
+<tr>
+<td style="{{ td }}font-weight:bold;">{{ f.priority }}</td>
+<td style="{{ td }}">{{ f.contact.display_name }}{% if f.going_cold %} <span style="color:#a15c00;">(cold)</span>{% endif %}</td>
+<td style="{{ td }}">{{ f.contact.firm or '' }}</td>
+<td style="{{ td }}">{{ stage(f.contact.stage) }}</td>
+<td style="{{ td }}white-space:nowrap;">{{ d(f.due_date) }}{% if f.days_overdue %}<br><span style="color:#b00020;">{{ f.days_overdue }}d overdue</span>{% endif %}</td>
+<td style="{{ td }}white-space:nowrap;">{{ d(f.contact.last_contact_date) }}{% if f.days_since_contact is not none %}<br><span style="color:#666;">{{ f.days_since_contact }}d ago</span>{% endif %}</td>
+{% if show_reason %}<td style="{{ td }}">{{ f.reason }}</td>{% endif %}
+<td style="{{ td }}">{{ f.contact.owner or '' }}</td>
+</tr>
+{% endfor %}
+</table>
+{%- endmacro -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Follow-up digest {{ as_of.isoformat() }}</title>
+</head>
+<body style="margin:0;padding:16px;background:#ffffff;color:#111;font-family:Arial,Helvetica,sans-serif;">
+<div style="max-width:960px;margin:0 auto;">
+<h1 style="font-size:20px;margin:0 0 4px 0;">Investor follow-up digest - {{ as_of.strftime('%A') }} {{ as_of.day }} {{ as_of.strftime('%B %Y') }}</h1>
+<p style="margin:0 0 12px 0;color:#555;font-size:13px;">Source: {{ source_name }} (sheet "{{ sheet_name }}") &middot; {{ n_contacts }} contacts &middot; generated {{ generated }} &middot; drafts are for review only - nothing has been sent.</p>
+
+<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:8px 0 4px 0;"><tr>
+{% for label, n, colour in [('Overdue', r.overdue|length, '#b00020'), ('Due this week', r.due_this_week|length, '#111'), ('Going cold', r.going_cold|length, '#a15c00'), ('Data gaps', r.data_gaps|length, '#555'), ('Changes', r.changes|length, '#555')] %}
+<td style="padding:8px 16px 8px 0;"><div style="font-size:22px;font-weight:bold;color:{{ colour }};">{{ n }}</div><div style="font-size:12px;color:#555;">{{ label }}</div></td>
+{% endfor %}
+</tr></table>
+
+{% if r.warnings %}<p style="font-size:12px;color:#a15c00;margin:4px 0;">{% for w in r.warnings %}&#9888; {{ w }}<br>{% endfor %}</p>{% endif %}
+
+<h2 style="{{ h2 }}color:#b00020;">Overdue ({{ r.overdue|length }})</h2>
+{% if r.overdue %}{{ fu_table(r.overdue) }}{% else %}<p style="font-size:13px;color:#555;">Nothing overdue.</p>{% endif %}
+
+<h2 style="{{ h2 }}">Due this week, {{ week_label }} ({{ r.due_this_week|length }})</h2>
+{% if r.due_this_week %}{{ fu_table(r.due_this_week) }}{% else %}<p style="font-size:13px;color:#555;">Nothing else due this week.</p>{% endif %}
+
+<h2 style="{{ h2 }}color:#a15c00;">Going cold - no contact for {{ cold_days }}+ days ({{ r.going_cold|length }})</h2>
+{% if r.going_cold %}
+<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;">
+<tr><th style="{{ th }}">Contact</th><th style="{{ th }}">Firm</th><th style="{{ th }}">Stage</th><th style="{{ th }}">Last contact</th><th style="{{ th }}">Days</th><th style="{{ th }}">Next action</th></tr>
+{% for f in r.going_cold %}
+<tr><td style="{{ td }}">{{ f.contact.display_name }}</td><td style="{{ td }}">{{ f.contact.firm or '' }}</td><td style="{{ td }}">{{ stage(f.contact.stage) }}</td><td style="{{ td }}">{{ d(f.contact.last_contact_date) }}</td><td style="{{ td }}">{{ f.days_since_contact }}</td><td style="{{ td }}">{{ f.contact.next_action or '' }}{% if f.contact.next_action_date %} ({{ d(f.contact.next_action_date) }}){% endif %}</td></tr>
+{% endfor %}
+</table>
+{% else %}<p style="font-size:13px;color:#555;">No active contacts have gone quiet.</p>{% endif %}
+
+<h2 style="{{ h2 }}">Changes since last run{% if r.previous_run %} ({{ r.previous_run.as_of }}){% endif %} ({{ r.changes|length }})</h2>
+{% if not r.previous_run %}<p style="font-size:13px;color:#555;">First run - baseline snapshot saved. Changes will be reported from the next run.</p>
+{% elif r.changes %}
+<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;">
+<tr><th style="{{ th }}">Change</th><th style="{{ th }}">Contact</th><th style="{{ th }}">Detail</th></tr>
+{% for ch in r.changes %}<tr><td style="{{ td }}white-space:nowrap;">{{ ch.label }}</td><td style="{{ td }}">{{ ch.who }}</td><td style="{{ td }}">{{ ch.detail }}</td></tr>{% endfor %}
+</table>
+{% else %}<p style="font-size:13px;color:#555;">No changes.</p>{% endif %}
+
+<h2 style="{{ h2 }}">Data gaps ({{ r.data_gaps|length }})</h2>
+{% if r.data_gaps or r.rejected_rows %}
+<p style="font-size:12px;color:#555;margin:0 0 6px 0;">Fixing these in the spreadsheet makes the follow-up dates reliable. Row numbers are Excel rows.</p>
+<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;">
+<tr><th style="{{ th }}">Row</th><th style="{{ th }}">Contact</th><th style="{{ th }}">Firm</th><th style="{{ th }}">Problem</th></tr>
+{% for f, gaps in r.data_gaps %}<tr><td style="{{ td }}">{{ f.contact.source_rows|join(', ') }}</td><td style="{{ td }}">{{ f.contact.display_name }}</td><td style="{{ td }}">{{ f.contact.firm or '' }}</td><td style="{{ td }}">{% for g in gaps %}{{ g.msg }}{% if not loop.last %}; {% endif %}{% endfor %}</td></tr>{% endfor %}
+{% for x in r.rejected_rows %}<tr><td style="{{ td }}">{{ x.row }}</td><td style="{{ td }}" colspan="2">-</td><td style="{{ td }}">{{ x.msg }} (ignored)</td></tr>{% endfor %}
+</table>
+{% else %}<p style="font-size:13px;color:#555;">None.</p>{% endif %}
+
+<h2 style="{{ h2 }}">Pipeline by stage</h2>
+<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+<tr><th style="{{ th }}">Stage</th><th style="{{ th }}text-align:right;">Contacts</th><th style="{{ th }}text-align:right;">Potential ({{ base_ccy }}, converted)</th><th style="{{ th }}">By currency (as entered)</th></tr>
+{% for s in summary %}<tr><td style="{{ td }}">{{ s.stage }}</td><td style="{{ td }}text-align:right;">{{ s.count }}</td><td style="{{ td }}text-align:right;">{{ m(s.value) }}{% if s.with_ticket < s.count %} <span style="color:#888;font-size:11px;">({{ s.with_ticket }}/{{ s.count }} sized)</span>{% endif %}</td><td style="{{ td }}">{% for c, v in s.by_ccy.items() %}{{ c }} {{ m(v) }}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>{% endfor %}
+<tr><td style="{{ td }}font-weight:bold;">Total</td><td style="{{ td }}text-align:right;font-weight:bold;">{{ summary|sum(attribute='count') }}</td><td style="{{ td }}text-align:right;font-weight:bold;">{{ m(summary|sum(attribute='value')) }}</td><td style="{{ td }}"></td></tr>
+</table>
+<p style="font-size:11px;color:#888;">Converted at fixed rates from the config ({{ fx_note }}). Ranges use the midpoint.</p>
+
+{% if r.upcoming %}
+<h2 style="{{ h2 }}">Coming up (next {{ upcoming_days }} days)</h2>
+{{ fu_table(r.upcoming, show_reason=False) }}
+{% endif %}
+
+<p style="font-size:11px;color:#888;margin-top:28px;">Generated locally by the pipeline follow-up tool. Read-only on the source spreadsheet. Draft emails are in drafts.txt / the dashboard and must be reviewed before sending.</p>
+</div>
+</body>
+</html>
