@@ -34,8 +34,8 @@ def name_key(name: str | None) -> str:
     return _key(n)
 
 
-def make_contact_id(name: str | None, firm: str | None) -> str:
-    raw = f"{name_key(name)}|{firm_key(firm)}"
+def make_contact_id(name: str | None, firm: str | None, record_id: str | None = None) -> str:
+    raw = f"id:{record_id.strip().lower()}" if record_id and record_id.strip() else f"{name_key(name)}|{firm_key(firm)}"
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
 
 
@@ -43,6 +43,7 @@ def make_contact_id(name: str | None, firm: str | None) -> str:
 class Contact:
     contact_id: str
     source_rows: list[int]
+    record_id: str | None = None
     name: str | None = None
     firm: str | None = None
     email: str | None = None
@@ -225,7 +226,12 @@ def build_contacts(sheet: SheetData, colmap: dict[str, int], cfg: dict, as_of: d
         if not name and not firm:
             rejected.append({"row": row_no, "msg": "row has data but no contact name or firm"})
             continue
-        c = Contact(contact_id=make_contact_id(name, firm), source_rows=[row_no], name=name, firm=firm)
+        rid = get("record_id")
+        rid = None if is_blank(rid, cfg) else clean_text(rid)
+        if isinstance(get("record_id"), float) and float(get("record_id")).is_integer():
+            rid = str(int(get("record_id")))  # 1234.0 -> "1234"
+        c = Contact(contact_id=make_contact_id(name, firm, rid), source_rows=[row_no], record_id=rid,
+                    name=name, firm=firm)
         if not name:
             c.issue("name", "no contact name")
         if not firm:

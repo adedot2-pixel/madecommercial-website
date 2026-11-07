@@ -10,9 +10,10 @@ Go through these with the EA, ideally with the real file open, before switching 
    how quickly do edits appear?
 3. Is there one row per **person** or one row per **firm**? If per firm, where are individual contacts
    kept?
-4. Is there a hidden or unique ID column (a CRM ID, for example)? Contacts are currently identified by
-   name + firm. Renaming either one makes the contact look new, and its snooze/done/notes history is
-   lost.
+4. Is there a hidden or unique ID column (a CRM ID, for example)? If so, map it as `record_id`; it is
+   the most reliable way to keep each contact's snooze/done/notes history. Without one, contacts are
+   identified by name + firm, and renames are matched by email or name. Two different people with the
+   same name would be confused by that fallback.
 5. Are there title rows, sub-headers, colour-coded rows, hidden rows or filtered views? Does colour
    carry meaning (e.g. red = urgent) that isn't written anywhere else? The tool cannot read meaning
    from colour.

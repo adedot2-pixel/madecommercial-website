@@ -4,9 +4,12 @@ from __future__ import annotations
 import datetime as dt
 
 from .config import STANDARD_STAGES
-from .normalise import Contact
+import hashlib
+
+from .normalise import Contact, name_key
 
 KIND_LABEL = {
+    "renamed": "Renamed / re-keyed (history carried over)",
     "new": "New contact",
     "removed": "No longer in sheet",
     "stage_move": "Stage moved",
@@ -21,6 +24,9 @@ def snapshot_row(c: Contact) -> dict:
     """Minimal fields kept between runs. Deliberately excludes notes and email addresses."""
     return {
         "name": c.name, "firm": c.firm, "stage": c.stage,
+        # one-way fingerprints, used only to recognise the same person after a rename
+        "email_hash": hashlib.sha256(c.email.encode()).hexdigest()[:16] if c.email else None,
+        "name_key": name_key(c.name) or None,
         "last_contact_date": c.last_contact_date.isoformat() if c.last_contact_date else None,
         "next_action_date": c.next_action_date.isoformat() if c.next_action_date else None,
         "ticket_base": round(c.ticket_base) if c.ticket_base else None,
@@ -44,8 +50,25 @@ def compare(prev_run: dict | None, prev: dict[str, dict], contacts: list[Contact
         firm = (c.firm if c else p.get("firm")) or ""
         return f"{name} ({firm})" if firm else name
 
+    # Renames: a contact that vanished and one that appeared, with the same email or the same name
+    renamed: dict[str, str] = {}  # new cid -> old cid
+    gone = {pid: p for pid, p in prev.items() if pid not in cur}
     for cid, c in cur.items():
-        p = prev.get(cid)
+        if cid in prev:
+            continue
+        eh = hashlib.sha256(c.email.encode()).hexdigest()[:16] if c.email else None
+        nk = name_key(c.name) or None
+        match = [pid for pid, p in gone.items() if pid not in renamed.values() and
+                 ((eh and p.get("email_hash") == eh) or (nk and p.get("name_key") == nk))]
+        if len(match) == 1:
+            renamed[cid] = match[0]
+
+    for cid, c in cur.items():
+        if cid in renamed:
+            p = prev[renamed[cid]]
+            out.append({"contact_id": cid, "from_id": renamed[cid], "kind": "renamed", "who": who(c),
+                        "detail": f"was '{who(p=p)}'"})
+        p = prev.get(cid) or (prev[renamed[cid]] if cid in renamed else None)
         if p is None:
             out.append({"contact_id": cid, "kind": "new", "who": who(c),
                         "detail": f"added at stage {c.stage or '(none)'}"})
@@ -75,7 +98,7 @@ def compare(prev_run: dict | None, prev: dict[str, dict], contacts: list[Contact
             out.append({"contact_id": cid, "kind": "ticket_changed", "who": who(c),
                         "detail": f"{_m(pt)} -> {_m(t)}"})
     for cid, p in prev.items():
-        if cid not in cur:
+        if cid not in cur and cid not in renamed.values():
             out.append({"contact_id": cid, "kind": "removed", "who": who(p=p), "detail": "row deleted or renamed"})
     order = list(KIND_LABEL)
     out.sort(key=lambda x: (order.index(x["kind"]), x["who"]))

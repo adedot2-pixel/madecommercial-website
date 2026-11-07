@@ -20,7 +20,7 @@ STANDARD_STAGES = [
     "Dormant",
 ]
 FIELDS = [
-    "name", "firm", "email", "investor_type", "stage", "last_contact_date",
+    "record_id", "name", "firm", "email", "investor_type", "stage", "last_contact_date",
     "last_contact_type", "last_actor", "next_action", "next_action_date",
     "owner", "ticket_size", "notes",
 ]
@@ -71,6 +71,11 @@ def load_config(path: str | Path | None) -> dict:
     return cfg
 
 
+def external_approval(cfg: dict) -> str | None:
+    v = cfg["drafts"]["ai"].get("external_provider_approval")
+    return str(v).strip() if v and len(str(v).strip()) >= 10 else None
+
+
 def resolve_path(cfg: dict, value: str | Path) -> Path:
     p = Path(str(value)).expanduser()
     if not p.is_absolute():
@@ -98,6 +103,17 @@ def validate(cfg: dict) -> None:
     ai = cfg["drafts"]["ai"]
     if ai.get("enabled") and ai.get("provider") not in ("ollama", "anthropic"):
         problems.append("drafts.ai.provider must be 'ollama' or 'anthropic'")
+    if ai.get("enabled") or ai.get("provider") == "ollama":
+        from urllib.parse import urlparse
+
+        host = urlparse(str(ai.get("ollama_url", ""))).hostname
+        if ai.get("provider") == "ollama" and host not in ("127.0.0.1", "localhost", "::1"):
+            problems.append("drafts.ai.ollama_url must point at this machine (127.0.0.1/localhost) - "
+                            "a remote model would send data off the machine")
+    if ai.get("enabled") and ai.get("provider") == "anthropic" and not external_approval(cfg):
+        problems.append("drafts.ai.provider 'anthropic' sends contact data to the Anthropic API. Fill in "
+                        "drafts.ai.external_provider_approval (who approved it, when) once IT and Compliance "
+                        "have signed off, or use provider 'ollama' (local).")
     host = str(cfg["dashboard"].get("host", "127.0.0.1"))
     if host not in ("127.0.0.1", "localhost", "::1"):
         problems.append("dashboard.host must be 127.0.0.1/localhost (the dashboard is local-only by design)")

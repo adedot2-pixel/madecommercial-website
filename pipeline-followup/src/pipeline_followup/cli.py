@@ -29,7 +29,7 @@ def _date(s: str) -> dt.date:
 # ---------------- inspect ----------------
 def cmd_inspect(args) -> int:
     from .ingest import read_sheet
-    from .mapping import missing_fields, suggest_mapping, suggest_stage_aliases
+    from .mapping import last_actor_hint, missing_fields, suggest_mapping, suggest_stage_aliases
 
     cfg_path = _config_path(args.config)
     cfg = load_config(cfg_path)
@@ -68,6 +68,12 @@ def cmd_inspect(args) -> int:
     if miss["optional"]:
         print(f"   Optional fields not found: {', '.join(miss['optional'])}")
 
+    hint = last_actor_hint(sug)
+    if hint:
+        print(f"\n!  {hint}")
+    if "record_id" not in sug:
+        print("\n   No unique ID column found: contacts are identified by name + firm (renames are detected by\n"
+              "   email or name and their history carried over, but an ID column is more reliable).")
     additions, unmatched = {}, []
     if "stage" in sug:
         idx = sheet.headers.index(sug["stage"]["header"])
@@ -84,6 +90,8 @@ def cmd_inspect(args) -> int:
     out_cfg["source"]["sheet"] = sheet.sheet_name
     out_cfg["source"]["header_row"] = sheet.header_row
     out_cfg["columns"] = {f: sug[f]["header"] for f in FIELDS if f in sug}
+    if hint:
+        out_cfg["values"]["last_actor_column_means"] = "whose_turn"
     for st, vals in additions.items():
         out_cfg["stages"][st] = sorted(set(out_cfg["stages"].get(st, []) + vals))
     out = Path(args.out) if args.out else (cfg_path.parent if cfg_path else Path("config")) / "config.suggested.yaml"
@@ -131,6 +139,92 @@ def cmd_serve(args) -> int:
         webbrowser.open(url)
     uvicorn.run(app, host=host, port=port, log_level="warning")
     return 0
+
+
+# ---------------- ai-check ----------------
+def cmd_ai_check(args) -> int:
+    """Try the configured AI provider and compare its drafts with the template drafts.
+    Uses the FICTIONAL demo data unless --real is given, so a trial never exposes real contacts."""
+    import json
+    import tempfile
+    import time
+    import urllib.request
+
+    from .config import external_approval
+    from .drafts import Drafter
+    from .dummy import generate
+    from .engine import evaluate
+
+    cfg = load_config(_config_path(args.config))
+    ai = cfg["drafts"]["ai"]
+    if args.provider:
+        ai["provider"] = args.provider
+    if args.model:
+        ai["model"] = args.model
+    elif args.provider == "anthropic" and "claude" not in str(ai.get("model")):
+        ai["model"] = "claude-opus-5-5"
+    provider = ai["provider"]
+    print(f"Provider: {provider}   model: {ai.get('model')}   enabled in config: {bool(ai.get('enabled'))}")
+
+    if provider == "ollama":
+        print(f"Data stays on this machine ({ai['ollama_url']}).")
+        try:
+            with urllib.request.urlopen(ai["ollama_url"].rstrip("/") + "/api/tags", timeout=5) as r:
+                models = [m["name"] for m in json.loads(r.read()).get("models", [])]
+        except Exception as e:
+            print(f"\nCannot reach Ollama at {ai['ollama_url']}: {e}\n"
+                  "Install Ollama (https://ollama.com), start it, then run:\n"
+                  f"  ollama pull {ai.get('model') or 'llama3.1:8b'}")
+            return 2
+        print(f"Local models installed: {', '.join(models) or '(none)'}")
+        wanted = ai.get("model") or "llama3.1:8b"
+        if not any(m == wanted or m.split(":")[0] == wanted for m in models):
+            print(f"\nModel '{wanted}' is not installed. Run:\n  ollama pull {wanted}")
+            return 2
+    elif provider == "anthropic":
+        approval = external_approval(cfg)
+        if not approval:
+            print("\nRefused: the 'anthropic' provider sends contact data to the Anthropic API.\n"
+                  "Fill in drafts.ai.external_provider_approval in the config once IT and Compliance have\n"
+                  "signed off (the Claude Enterprise licence covers the claude.ai app, not API use).")
+            return 2
+        print(f"EXTERNAL provider - data leaves this machine. Approval on record: {approval}")
+    else:
+        print("Unknown provider")
+        return 2
+
+    if args.real:
+        print("\nUsing the REAL spreadsheet from the config.")
+        r = evaluate(cfg, dt.date.today())
+        as_of = dt.date.today()
+    else:
+        tmp = Path(tempfile.mkdtemp())
+        as_of = dt.date.today()
+        cur, _ = generate(tmp, as_of)
+        cfg["source"]["path"] = str(cur)
+        cfg["source"]["sheet"] = None
+        cfg["columns"] = load_defaults()["columns"]
+        print("\nUsing FICTIONAL demo data (pass --real to try the configured spreadsheet).")
+        r = evaluate(cfg, as_of)
+    ai["enabled"] = True
+    drafter = Drafter(cfg)
+    picks = r.due_now[: args.n]
+    ok = 0
+    for f in picks:
+        base = drafter.template_draft(f, as_of)
+        t0 = time.time()
+        d = drafter.draft(f, as_of)
+        secs = time.time() - t0
+        ok += d.source.startswith("ai:")
+        print("\n" + "=" * 78)
+        print(f"{f.contact.display_name} ({f.contact.firm}) - {f.reason}")
+        print("-" * 34 + " TEMPLATE " + "-" * 34)
+        print(base.body)
+        print("-" * 30 + f" {d.source.upper()} ({secs:.1f}s) " + "-" * 30)
+        print(d.body if d.source.startswith("ai:") else "(AI draft failed - see warning above; template would be used)")
+    print(f"\n{ok}/{len(picks)} AI drafts produced. Nothing was sent. "
+          f"To use AI in the daily run, set drafts.ai.enabled: true in the config.")
+    return 0 if ok == len(picks) else 1
 
 
 # ---------------- demo ----------------
@@ -201,6 +295,14 @@ def main(argv=None) -> int:
     s.add_argument("--as-of", type=_date)
     s.add_argument("--open", action="store_true")
     s.set_defaults(func=cmd_serve)
+
+    s = sub.add_parser("ai-check", help="Try the AI drafting provider on fictional data, next to template drafts")
+    s.add_argument("--config")
+    s.add_argument("--provider", choices=["ollama", "anthropic"])
+    s.add_argument("--model")
+    s.add_argument("-n", type=int, default=3, help="number of sample drafts (default 3)")
+    s.add_argument("--real", action="store_true", help="use the configured (real) spreadsheet instead")
+    s.set_defaults(func=cmd_ai_check)
 
     s = sub.add_parser("demo", help="Generate the dummy spreadsheet and run against it")
     s.add_argument("--dir", default="demo")

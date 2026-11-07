@@ -144,15 +144,24 @@ Soft commit, Invested, Dormant.
 - Anything unrecognised is listed under **Data gaps** until it's added to the config.
 - To show the team's own wording on screen, use `display_stage_names`, e.g. `{"Due diligence": "DD"}`.
 
+**Contact identity.**
+- If the sheet has a unique ID column (a CRM ID, for example), map it as `record_id`. Contacts then keep
+  their snooze, done and notes history even if a name or firm is retyped.
+- Without an ID, a contact is identified by name + firm. If either changes, the next run matches the
+  contact by email or by name, reports it as **Renamed** in the change list, and carries its history
+  over.
+
 **Who acted last.** If the sheet records *whose turn it is* ("ball in our court") rather than *who
-acted last*, set `values.last_actor_column_means: whose_turn` and the tool flips it.
+acted last*, set `values.last_actor_column_means: whose_turn` and the tool flips it. `inspect` spots headers like
+"Ball in court" or "Waiting on" and sets this in the suggested config for you to confirm.
 
 **Currencies.**
 - Each ticket keeps the currency it was entered in. `$ € £` and codes like `CHF` or `NOK` are
   recognised.
 - A bare number uses `tickets.default_currency` and `default_unit` (e.g. `25` = 25m).
 - For scoring and totals, tickets are converted to `base_currency` at the fixed rates in
-  `tickets.fx_to_base`. Update these occasionally.
+  `tickets.fx_to_base`. Record the date they were set in `tickets.fx_as_of`; the digest warns when they
+  are more than 90 days old.
 - The pipeline table also shows the totals per currency as entered.
 
 ## 4. Daily run and scheduling
@@ -195,7 +204,7 @@ Each run writes to `output/<YYYY-MM-DD>/`:
 | `followups.xlsx` | The prioritised follow-up list (with draft subject and body), plus Data gaps, Changes, and Pipeline-by-stage sheets. |
 
 **Change tracking.** Each run is compared with the previous successful run. It reports:
-- new contacts, and contacts no longer in the sheet;
+- new contacts, renamed contacts, and contacts no longer in the sheet;
 - stage moves (forward or back);
 - contacts that went quiet (crossed the going-cold threshold);
 - new activity logged, next-action date changes and ticket changes.
@@ -274,25 +283,44 @@ performance figures or fund terms. The templates are plain text files in
 `src/pipeline_followup/templates/drafts/` and can be edited by anyone. Free-text sheet notes are **never**
 pasted into email bodies; they appear in the reviewer note only.
 
-To try an AI model, set `drafts.ai.enabled: true` and choose a provider:
+**Recommended path: a local model first.** A model running on the laptop means no data leaves the
+machine, so no new data-sharing approval is needed.
 
-| Provider | Where data goes | Setup |
-|---|---|---|
-| `ollama` (recommended first) | Nowhere: a model running on the same laptop (`http://127.0.0.1:11434`) | Install Ollama, run `ollama pull llama3.1:8b`, then set `provider: ollama` |
-| `anthropic` | The Anthropic API (Claude), over HTTPS | `pip install anthropic`, set `provider: anthropic`, `model: claude-opus-5-5`, and put an API key in the `ANTHROPIC_API_KEY` environment variable |
+1. Install [Ollama](https://ollama.com) on the laptop. This needs IT approval, but it's a local app.
+2. Download a model:
+   ```bat
+   ollama pull llama3.1:8b
+   ```
+3. Trial it on **fictional** data. `ai-check` uses the dummy pipeline unless `--real` is given, and
+   prints template and AI drafts side by side:
+   ```bat
+   .venv\Scripts\python -m pipeline_followup ai-check
+   ```
+4. If the drafts are better, set `drafts.ai.enabled: true` (provider `ollama`). Any failure falls back
+   to the template draft.
 
-Notes:
-- **Claude Enterprise is not the same as API access.** The firm's Claude Enterprise licence covers the
-  claude.ai app. Calling Claude from this tool needs an API key from the Anthropic Console, under
-  whatever data terms the firm has agreed for API use. Check with IT and Compliance before enabling it.
-- What is sent: first name, firm, investor type, stage, when and how the last contact happened, who
-  acted last, why the follow-up is due, and the next action.
-  - Email addresses are never sent.
-  - Free-text notes are sent only if `send_notes: true`.
-- The Anthropic call enables server-side refusal fallback (`fallbacks: "default"`). If the model
-  declines a request, another Claude model is tried within the same call.
-- If the model is unreachable or fails, the template draft is used and a warning is logged. The
-  dashboard always shows template drafts, so loading a page never calls a model.
+**Anthropic API (Claude): only after sign-off.**
+- The firm's **Claude Enterprise** licence covers the claude.ai app. It does **not** cover calls from this
+  tool, which need an API key from the Anthropic Console under the firm's API data terms.
+- The tool **refuses** to use `provider: anthropic` until `drafts.ai.external_provider_approval` records
+  who approved it and when, e.g. `"Compliance (J. Smith) + IT, 2026-12-01, ref CR-123"`. Each run logs
+  the provider and the approval text.
+- Setup:
+  1. `pip install anthropic`
+  2. Set the `ANTHROPIC_API_KEY` environment variable.
+  3. Set `provider: anthropic` and `model: claude-opus-5-5`.
+  4. Try it first with `ai-check --provider anthropic`.
+- The call enables server-side refusal fallback (`fallbacks: "default"`). If the model declines a
+  request, another Claude model is tried within the same call.
+
+**What a model receives:**
+- first name, firm, investor type and stage;
+- when and how the last contact happened, and who acted last;
+- why the follow-up is due, and the next action.
+
+Email addresses are **never** sent. Free-text notes are sent only if `send_notes: true`. Ollama's address
+must be this machine; the config rejects a remote one. The dashboard always shows template drafts, so
+loading a page never calls a model.
 
 ## 9. Data-handling summary for IT / Compliance
 
@@ -301,8 +329,10 @@ Notes:
 | Purpose | Internal reminder and drafting aid for investor-relations follow-ups. A person reviews every output. |
 | Source data | The existing pipeline spreadsheet. **Read-only:** the file's bytes are read into memory and parsed there, and the file is never opened for writing. A test checks that its hash and modified time are unchanged after a run. |
 | Sending | **The tool cannot send email.** There is no SMTP, Graph or Outlook-send code. The `.eml` is marked unsent and opens as a draft for a person to send. |
-| Network | **None by default.** The tool loads no web fonts, CDNs or analytics, and sends no telemetry. The dashboard binds to `127.0.0.1` only (the config refuses any other host), rejects requests with a foreign Host or Origin header, and has the API docs endpoints switched off. The only optional outbound call is AI drafting (section 8), which is off by default. |
-| Data stored by the tool | `state.db` (SQLite) holds: run log; per-run **minimal snapshots** (name, firm, stage, last-contact date, next-action date, ticket; **no notes, no emails**) for change tracking, purged after `snapshot_retention_days` (default 120); snooze/done/notes typed in the dashboard, with the Windows user name. Outputs in `output/<date>/` contain contact details and drafts. Store them where the spreadsheet is allowed to live, and delete old folders as per retention policy. |
+| Network | **None by default.** The tool loads no web fonts, CDNs or analytics, and sends no telemetry. The dashboard binds to `127.0.0.1` only (the config refuses any other host), rejects requests with a foreign Host or Origin header, and has the API docs endpoints switched off. The only optional outbound call is AI drafting (section 8). It is off by default, the local option
+stays on this machine, and the external (Anthropic) option is blocked until an approval is recorded in
+the config. |
+| Data stored by the tool | `state.db` (SQLite) holds: run log; per-run **minimal snapshots** (name, firm, stage, last-contact date, next-action date, ticket, and a one-way SHA-256 fingerprint of the email used only to recognise renamed contacts; **no notes, no plain email addresses**) for change tracking, purged after `snapshot_retention_days` (default 120); snooze/done/notes typed in the dashboard, with the Windows user name. Outputs in `output/<date>/` contain contact details and drafts. Store them where the spreadsheet is allowed to live, and delete old folders as per retention policy. |
 | Logs | `runs.log` and the `runs` table hold timestamps, user, file fingerprint (SHA-256), counts and errors. No personal data. |
 | Access control | Inherits the file-system permissions of wherever the spreadsheet, `state.db` and `output/` are stored. There is no separate user database and no passwords. |
 | Dependencies | Python plus pandas, openpyxl, PyYAML, Jinja2, FastAPI, uvicorn, pydantic, all from PyPI. `anthropic` only if that provider is enabled. |

@@ -10,7 +10,8 @@ from . import __version__
 from .changes import compare, snapshot_row
 from .config import resolve_path
 from .drafts import Drafter
-from .engine import Result, evaluate
+from .config import external_approval
+from .engine import Result, apply_actions, evaluate
 from .outputs import render_digest, write_drafts_txt, write_eml, write_excel
 from .state import State
 
@@ -44,12 +45,21 @@ def run(cfg: dict, as_of: dt.date | None = None) -> tuple[Result, Path]:
     run_id = state.start_run(as_of, str(src), __version__)
     # The log records counts and file fingerprints only - no names, emails or notes.
     log.info("run %s started: as_of=%s source=%s", run_id, as_of, src.name)
+    ai = cfg["drafts"]["ai"]
+    if ai.get("enabled"):
+        where = "local model" if ai["provider"] == "ollama" else f"EXTERNAL API, approval: {external_approval(cfg)}"
+        log.info("AI drafting ON: provider=%s model=%s (%s)", ai["provider"], ai.get("model"), where)
     try:
         r = evaluate(cfg, as_of, state)
         prev_run, prev = state.previous_snapshot(run_id, as_of)
         r.previous_run = prev_run
         r.changes = compare(prev_run, prev, r.contacts, as_of, int(cfg["rules"]["going_cold_days"]),
                             cfg["rules"].get("excluded_stages") or [])
+        renamed = {ch["contact_id"]: ch["from_id"] for ch in r.changes if ch["kind"] == "renamed"}
+        if renamed:
+            moved = sum(state.reassign_actions(old, new) for new, old in renamed.items())
+            apply_actions([f for f in r.followups if f.contact.contact_id in renamed], state, as_of)
+            log.info("%d contact(s) re-keyed since last run; %d tool action(s) carried over", len(renamed), moved)
 
         drafter = Drafter(cfg)
         due = r.due_now

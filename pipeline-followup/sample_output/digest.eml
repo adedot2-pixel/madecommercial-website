@@ -1,18 +1,18 @@
 To: alex.hart@calderridge.example
 Subject: Follow-ups Sat 7 Nov: 23 overdue, 15 due this week, 6 going cold
-Date: Sat, 07 Nov 2026 12:18:39 +0000
+Date: Sat, 07 Nov 2026 12:26:40 +0000
 X-Unsent: 1
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============8309837306208779604=="
+ boundary="===============8366898476138317808=="
 
---===============8309837306208779604==
+--===============8366898476138317808==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
 This digest is HTML. Open digest.html if it does not display.
 
---===============8309837306208779604==
+--===============8366898476138317808==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -31,7 +31,7 @@ y:Arial,Helvetica,sans-serif;">
 turday 7 November 2026</h1>
 <p style=3D"margin:0 0 12px 0;color:#555;font-size:13px;">Source: Pipeline.xl=
 sx (sheet "Pipeline") &middot; 48 contacts &middot; generated 07 Nov 2026 12:=
-18 &middot; drafts are for review only - nothing has been sent.</p>
+26 &middot; drafts are for review only - nothing has been sent.</p>
 
 <table cellpadding=3D"0" cellspacing=3D"0" style=3D"border-collapse:collapse;=
 margin:8px 0 4px 0;"><tr>
@@ -58,7 +58,9 @@ t:bold;color:#555;">29</div><div style=3D"font-size:12px;color:#555;">Changes=
 
 </tr></table>
 
-
+<p style=3D"font-size:12px;color:#a15c00;margin:4px 0;">&#9888; Column for &#=
+39;record_id&#39; not found (looked for CRM ID, ID, Record ID) - field treate=
+d as empty<br></p>
 
 <h2 style=3D"font-size:16px;margin:28px 0 8px 0;padding-bottom:4px;border-bot=
 tom:1px solid #999;color:#b00020;">Overdue (23)</h2>
@@ -1370,4 +1372,4 @@ s are in drafts.txt / the dashboard and must be reviewed before sending.</p>
 </body>
 </html>
 
---===============8309837306208779604==--
+--===============8366898476138317808==--

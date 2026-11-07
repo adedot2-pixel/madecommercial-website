@@ -109,6 +109,12 @@ def evaluate(cfg: dict, as_of: dt.date, state: State | None = None) -> Result:
     if as_of.year > UK_CALENDAR_LAST_YEAR and str(cfg["rules"].get("working_calendar")).upper() == "UK":
         warnings.append(f"Built-in UK bank holidays end in {UK_CALENDAR_LAST_YEAR}; add later ones to rules.extra_holidays")
 
+    t = cfg["tickets"]
+    if t.get("fx_as_of"):
+        fx_date = t["fx_as_of"] if isinstance(t["fx_as_of"], dt.date) else dt.date.fromisoformat(str(t["fx_as_of"]))
+        if (as_of - fx_date).days > int(t.get("fx_max_age_days", 90)):
+            warnings.append(f"FX rates in the config date from {fx_date:%d %b %Y} - update tickets.fx_to_base "
+                            f"and tickets.fx_as_of")
     contacts, rejected = build_contacts(sheet, colmap, cfg, as_of)
     cal = Calendar(cfg)
     fus = [evaluate_contact(c, cfg, cal, as_of) for c in contacts]

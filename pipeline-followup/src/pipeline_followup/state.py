@@ -149,6 +149,11 @@ class State:
                  snooze_until.isoformat() if snooze_until else None, basis, note))
             return cur.lastrowid
 
+    def reassign_actions(self, old_id: str, new_id: str) -> int:
+        """Carry snooze/done/notes over when a contact's key changes (rename, firm move)."""
+        with self.conn() as c:
+            return c.execute("UPDATE actions SET contact_id=? WHERE contact_id=?", (new_id, old_id)).rowcount
+
     def undo_action(self, action_id: int):
         with self.conn() as c:
             c.execute("UPDATE actions SET undone_at=? WHERE id=?",

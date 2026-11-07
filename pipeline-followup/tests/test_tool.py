@@ -186,3 +186,144 @@ def test_actions_snooze_done_resurface(tmp_path, cfg):
     st2 = State(tmp_path / "s2.db")
     st2.add_action(g.contact.contact_id, "done", basis="old-basis")
     assert next(x for x in evaluate(cfg, AS_OF, st2).followups if x.contact.contact_id == g.contact.contact_id).status == "open"
+
+
+# ---------------- recommendations follow-up ----------------
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+from pipeline_followup.changes import compare, snapshot_row
+from pipeline_followup.cli import main as cli_main
+from pipeline_followup.config import ConfigError
+from pipeline_followup.drafts import Drafter
+from pipeline_followup.mapping import last_actor_hint
+
+
+def test_external_ai_needs_recorded_approval(tmp_path):
+    p = tmp_path / "c.yaml"
+    p.write_text("drafts:\n  ai:\n    enabled: true\n    provider: anthropic\n")
+    with pytest.raises(ConfigError, match="external_provider_approval"):
+        load_config(p)
+    p.write_text("drafts:\n  ai:\n    enabled: true\n    provider: anthropic\n"
+                 "    external_provider_approval: 'Compliance (J. Smith) + IT, 2026-12-01, ref CR-1'\n")
+    assert load_config(p)["drafts"]["ai"]["provider"] == "anthropic"
+
+
+def test_ollama_must_be_local(tmp_path):
+    p = tmp_path / "c.yaml"
+    p.write_text("drafts:\n  ai:\n    enabled: true\n    provider: ollama\n    ollama_url: 'http://gpu-box.corp:11434'\n")
+    with pytest.raises(ConfigError, match="this machine"):
+        load_config(p)
+
+
+class _FakeOllama(BaseHTTPRequestHandler):
+    seen = []
+
+    def log_message(self, *a):
+        pass
+
+    def _send(self, obj):
+        body = json.dumps(obj).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        self._send({"models": [{"name": "llama3.1:8b"}]})
+
+    def do_POST(self):
+        payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        _FakeOllama.seen.append(payload)
+        self._send({"response": "Dear X,\n\nAI-written follow-up.\n\nBest regards,\nAlex"})
+
+
+@pytest.fixture
+def fake_ollama():
+    srv = HTTPServer(("127.0.0.1", 0), _FakeOllama)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{srv.server_port}"
+    srv.shutdown()
+
+
+def test_local_ai_drafting_and_what_is_sent(tmp_path, cfg, fake_ollama):
+    cur, _ = generate(tmp_path, AS_OF)
+    cfg["source"]["path"] = str(cur)
+    cfg["drafts"]["ai"].update(enabled=True, provider="ollama", ollama_url=fake_ollama)
+    r = evaluate(cfg, AS_OF)
+    f = next(x for x in r.due_now if x.contact.notes and x.contact.email)
+    d = Drafter(cfg).draft(f, AS_OF)
+    assert d.source == "ai:ollama" and "AI-written" in d.body
+    sent = json.dumps(_FakeOllama.seen[-1])
+    assert f.contact.email not in sent          # email addresses never sent
+    assert f.contact.notes not in sent          # notes only if send_notes: true
+
+
+def test_ai_check_command_on_fictional_data(tmp_path, fake_ollama, capsys):
+    p = tmp_path / "c.yaml"
+    p.write_text(f"drafts:\n  ai:\n    ollama_url: '{fake_ollama}'\n")
+    assert cli_main(["ai-check", "--config", str(p), "-n", "2"]) == 0
+    out = capsys.readouterr().out
+    assert "FICTIONAL demo data" in out and "2/2 AI drafts produced" in out
+
+
+def test_record_id_column_keeps_identity(tmp_path, cfg):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["CRM ID", "Contact", "Company", "Status", "Last touch"])
+    ws.append([1001, "Ann Lee", "Foo Pension", "Intro", "01/11/2026"])
+    p = tmp_path / "a.xlsx"
+    wb.save(p)
+    cfg["source"]["path"] = str(p)
+    id1 = evaluate(cfg, AS_OF).contacts[0].contact_id
+    ws["B2"] = "Ann Lee-Smith"
+    ws["C2"] = "Foo Pension Scheme"
+    wb.save(p)
+    c = evaluate(cfg, AS_OF).contacts[0]
+    assert c.contact_id == id1 and c.record_id == "1001"
+
+
+def test_rename_detected_and_actions_carried_over(tmp_path):
+    cur, prev = generate(tmp_path, AS_OF)
+    cfg_file = tmp_path / "c.yaml"
+    cfg_file.write_text('source: {path: "Pipeline.xlsx"}\nstate: {db: "s.db", log: "r.log"}\noutput: {dir: "out"}\n')
+    cfg = load_config(cfg_file)
+    cfg["source"]["path"] = str(prev)
+    r0, _ = run(cfg, AS_OF - dt.timedelta(days=7))
+    priya = next(c for c in r0.contacts if c.name == "Priya Raman")
+    st = State(tmp_path / "s.db")
+    st.add_action(priya.contact_id, "note", note="Prefers calls")
+    # The EA renames the firm in the current sheet
+    wb = openpyxl.load_workbook(cur)
+    ws = wb.active
+    for row in ws.iter_rows():
+        for cell in row:
+            if cell.value == "Ellingham Family Office":
+                cell.value = "Ellingham Family Office (Geneva)"
+    wb.save(cur)
+    r, _ = run(load_config(cfg_file), AS_OF)
+    ch = next(c for c in r.changes if c["kind"] == "renamed")
+    assert "Priya Raman" in ch["who"] and "Ellingham Family Office" in ch["detail"]
+    assert not any(c["kind"] == "removed" and "Priya" in c["who"] for c in r.changes)
+    f = next(x for x in r.followups if x.contact.name == "Priya Raman")
+    assert [n["note"] for n in f.tool_notes] == ["Prefers calls"]
+
+
+def test_snapshot_has_no_plain_email_or_notes(cfg):
+    c = contact(email="a@b.example", notes="secret")
+    row = snapshot_row(c)
+    assert "a@b.example" not in json.dumps(row) and "secret" not in json.dumps(row)
+
+
+def test_whose_turn_hint():
+    assert last_actor_hint({"last_actor": {"header": "Ball in court"}})
+    assert last_actor_hint({"last_actor": {"header": "Last move by"}}) is None
+
+
+def test_stale_fx_warning(tmp_path, cfg):
+    cur, _ = generate(tmp_path, AS_OF)
+    cfg["source"]["path"] = str(cur)
+    cfg["tickets"]["fx_as_of"] = "2026-01-01"
+    assert any("FX rates" in w for w in evaluate(cfg, AS_OF).warnings)

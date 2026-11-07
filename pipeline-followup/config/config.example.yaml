@@ -14,6 +14,7 @@ source:
 # A list means "whichever of these exists" - useful if the EA renames a column.
 # Leave a field out (or null) if the sheet does not have it.
 columns:
+  record_id: ["CRM ID", "ID", "Record ID"]   # optional unique ID; keeps history stable if names change
   name: ["Contact", "Contact name", "Name"]
   firm: ["Company", "Firm", "Organisation"]
   email: ["E-mail", "Email"]
@@ -68,6 +69,8 @@ tickets:
   default_currency: USD      # used when a ticket has no currency marker
   default_unit: 1000000      # a bare "25" means 25m
   base_currency: USD         # totals and scoring are converted into this
+  fx_as_of: "2026-11-01"     # date the rates below were set; a warning appears when older than fx_max_age_days
+  fx_max_age_days: 90
   fx_to_base:                # fixed rates, 1 unit of currency = x base. Update periodically.
     USD: 1.0
     EUR: 1.08
@@ -114,11 +117,14 @@ drafts:
   sign_off: "Best regards"
   ai:
     enabled: false                     # OFF by default. Template drafts are used when off.
-    provider: ollama                   # "ollama" (local model) or "anthropic" (Anthropic API)
+    provider: ollama                   # "ollama" = local model on this machine (recommended first)
+                                       # "anthropic" = Anthropic API (data leaves the machine)
     model: "llama3.1:8b"               # e.g. "llama3.1:8b" for ollama, "claude-opus-5-5" for anthropic
-    ollama_url: "http://127.0.0.1:11434"
-    send_notes: false                  # include free-text notes in the AI prompt
-    send_email_address: false          # never needed for drafting; keep false
+    ollama_url: "http://127.0.0.1:11434"   # must be this machine (127.0.0.1 / localhost)
+    send_notes: false                  # include free-text sheet notes in the AI prompt
+    # Sign-off gate for any provider that sends data off this machine. The tool refuses to use
+    # "anthropic" until this is filled in with who approved it and when (IT + Compliance).
+    external_provider_approval: null   # e.g. "Approved by J. Smith (Compliance) and IT, 2026-12-01, ref CR-123"
 
 digest:
   to: ["alex.hart@calderridge.example"]   # pre-fills the .eml "To" line only. Nothing is sent.

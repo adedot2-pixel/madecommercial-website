@@ -9,6 +9,7 @@ from .config import FIELDS, KEY_FIELDS, REQUIRED_FIELDS, STANDARD_STAGES
 from .ingest import SheetData, norm_header
 
 FIELD_ALIASES: dict[str, list[str]] = {
+    "record_id": ["crm id", "record id", "id", "contact id", "salesforce id", "ref", "reference"],
     "name": ["contact", "contact name", "name", "investor name", "person", "full name", "key contact"],
     "firm": ["firm", "company", "organisation", "organization", "institution", "investor", "account", "entity"],
     "email": ["email", "e-mail", "email address", "mail"],
@@ -44,7 +45,8 @@ def _content_profile(values: list) -> dict:
     dates = sum(1 for v in vals if isinstance(v, (dt.date, dt.datetime))
                 or (isinstance(v, str) and re.search(r"\d{1,4}[/\-.]\d{1,2}[/\-.]\d{2,4}|\d{1,2}[ -][A-Za-z]{3}", v)))
     money = sum(1 for v in vals if isinstance(v, str) and re.search(r"[$€£]|\d\s*(m|mm|bn|k)\b|usd|eur|gbp|chf", v.lower()))
-    return {"filled": len(vals), "email": emails / n, "date": dates / n, "money": money / n,
+    uniq = len({str(v).strip().lower() for v in vals}) / n if vals else 0
+    return {"filled": len(vals), "unique": uniq, "email": emails / n, "date": dates / n, "money": money / n,
             "avg_len": sum(len(str(v)) for v in vals) / n}
 
 
@@ -64,6 +66,8 @@ def suggest_mapping(sheet: SheetData) -> dict[str, dict]:
                 s *= 0.6
             if f == "ticket_size" and p["money"] > 0.3:
                 s, why = max(s, 0.7), "values look like amounts"
+            if f == "record_id" and p["unique"] < 0.95:
+                s = 0  # an ID column must be (almost) unique per row
             if f == "notes" and p["avg_len"] > 25:
                 s = max(s, 0.5)
             if s >= 0.45:
@@ -76,6 +80,19 @@ def suggest_mapping(sheet: SheetData) -> dict[str, dict]:
         out[f] = {"header": h, "confidence": round(s, 2), "why": why}
         used_cols.add(i)
     return out
+
+
+WHOSE_TURN_HINTS = ("ball in", "court", "waiting on", "whose turn", "next move", "action with", "awaiting")
+
+
+def last_actor_hint(mapping: dict) -> str | None:
+    """If the 'who acted last' column looks like it records whose move it is NEXT, say so."""
+    h = (mapping.get("last_actor") or {}).get("header", "")
+    if any(k in norm_header(h) for k in WHOSE_TURN_HINTS):
+        return (f"The column '{h}' sounds like it records whose move it is NEXT, not who acted last. "
+                f"If so, keep values.last_actor_column_means: whose_turn (set in the suggested config) - "
+                f"confirm with the EA.")
+    return None
 
 
 def missing_fields(mapping: dict) -> dict[str, list[str]]:
